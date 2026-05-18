@@ -83,6 +83,34 @@ app.get("/health", (req, res) => {
 
 app.use("/submit", submitRouter);
 
+app.get("/oauth2callback", async (req, res) => {
+  try {
+    const { google } = require("googleapis");
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.CLIENT_ID,
+      process.env.CLIENT_SECRET,
+      process.env.REDIRECT_URI
+    );
+
+    const code = req.query.code;
+
+    if (!code) {
+      return res.status(400).send("No code received");
+    }
+
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    console.log("TOKENS:", tokens);
+
+    res.send("✅ Authentication successful! You can close this tab.");
+  } catch (err) {
+    console.error("OAuth error:", err);
+    res.status(500).send("OAuth failed");
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found." });
 });
