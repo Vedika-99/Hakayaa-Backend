@@ -43,6 +43,17 @@ const GOOGLE_OAUTH_SCOPES = [
   "https://mail.google.com/",
 ];
 
+const requiredRuntimeEnv = [
+  "CLIENT_ID",
+  "CLIENT_SECRET",
+  "REDIRECT_URI",
+  "REFRESH_TOKEN",
+  "SHEET_ID",
+  "SHEET_NAME",
+  "GMAIL_USER",
+  "ADMIN_EMAIL",
+];
+
 const createGoogleOAuthClient = () =>
   new google.auth.OAuth2(
     process.env.CLIENT_ID,
@@ -100,6 +111,19 @@ app.get("/", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.json({ success: true, status: "ok" });
+});
+
+app.get("/health/config", (req, res) => {
+  const missing = requiredRuntimeEnv.filter((key) => !process.env[key]);
+
+  res.status(missing.length ? 500 : 200).json({
+    success: missing.length === 0,
+    required: requiredRuntimeEnv.reduce((result, key) => {
+      result[key] = Boolean(process.env[key]);
+      return result;
+    }, {}),
+    missing,
+  });
 });
 
 app.use("/submit", submitRouter);

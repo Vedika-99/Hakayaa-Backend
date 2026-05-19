@@ -6,6 +6,17 @@ const { validateSubmission } = require("../utils/validate");
 
 const router = express.Router();
 
+const getConfigurationErrorMessage = (error) => {
+  const message = error && error.message ? error.message : "";
+  const match = message.match(/^Missing (?:Google Sheets|mailer) environment variables: (.+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return `Server configuration is missing: ${match[1]}.`;
+};
+
 const submitLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
@@ -47,6 +58,16 @@ router.post("/", submitLimiter, async (req, res, next) => {
     });
   } catch (error) {
     console.error("[submit] Failed to process submission:", error);
+
+    const configurationMessage = getConfigurationErrorMessage(error);
+    if (configurationMessage) {
+      return res.status(500).json({
+        success: false,
+        code: "MISSING_SERVER_CONFIG",
+        message: configurationMessage,
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Unable to send your message right now. Please try again later.",
