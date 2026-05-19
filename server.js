@@ -21,6 +21,10 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .map(normalizeOrigin)
   .filter(Boolean);
 
+const productionOrigins = [
+  "https://hakayaa-frontend.onrender.com",
+];
+
 const localhostOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
@@ -54,7 +58,11 @@ const corsOptions = {
     }
 
     const normalizedOrigin = normalizeOrigin(origin);
-    if (localhostOrigins.includes(normalizedOrigin) || allowedOrigins.includes(normalizedOrigin)) {
+    if (
+      localhostOrigins.includes(normalizedOrigin) ||
+      productionOrigins.includes(normalizedOrigin) ||
+      allowedOrigins.includes(normalizedOrigin)
+    ) {
       return callback(null, true);
     }
 
