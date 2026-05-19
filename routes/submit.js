@@ -6,6 +6,19 @@ const { validateSubmission } = require("../utils/validate");
 
 const router = express.Router();
 
+const formatIndianTimestamp = (date = new Date()) =>
+  new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  }).format(date);
+
 const getConfigurationErrorMessage = (error) => {
   const message = error && error.message ? error.message : "";
   const match = message.match(/^Missing (?:Google Sheets|mailer) environment variables: (.+)$/);
@@ -45,13 +58,19 @@ router.post("/", submitLimiter, async (req, res, next) => {
       });
     }
 
-    const timestamp = new Date().toISOString();
+    const timestamp = formatIndianTimestamp();
     const submission = { ...data, timestamp };
 
     await appendSubmission(submission);
-    await sendAdminNotification(submission);
+    sendAdminNotification(submission)
+      .then(() => {
+        console.log(`[submit] Emailed submission from ${data.email}`);
+      })
+      .catch((emailError) => {
+        console.error("[submit] Stored submission, but email notification failed:", emailError);
+      });
 
-    console.log(`[submit] Stored and emailed submission from ${data.email}`);
+    console.log(`[submit] Stored submission from ${data.email}`);
     return res.status(201).json({
       success: true,
       message: "Thanks. Your message has been sent successfully.",
